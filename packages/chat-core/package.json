@@ -1,7 +1,7 @@
 {
-  "name": "@openuidev/arrow-headless",
-  "version": "0.1.0",
-  "description": "Headless ArrowJS primitives for AI chat \u2014 state management, streaming adapters, message format converters, and thread management for OpenUI generative UI apps",
+  "name": "@openuidev/chat-core",
+  "version": "0.9.13",
+  "description": "Framework-free chat state, streaming adapters, and storage for OpenUI",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.cjs",
@@ -39,23 +39,23 @@
     "ci": "pnpm run lint:check && pnpm run format:check"
   },
   "peerDependencies": {
-    "@arrow-js/core": "^1.0.0",
-    "zustand": "^4.5.5"
+    "zustand": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@arrow-js/core": "^1.0.6",
+    "@types/node": "catalog:",
+    "ai": "^6.0.236",
+    "eve": "^0.11.7",
     "openai": "^6.22.0",
-    "vitest": "^4.0.18",
-    "zustand": "^4.5.5"
-  },
-  "dependencies": {
-    "@ag-ui/core": "^0.0.45",
-    "@openuidev/chat-core": "workspace:^"
+    "vitest": "^4.0.18"
   },
   "keywords": [
     "openui",
-    "arrow",
-    "arrowjs",
+    "react",
     "headless",
     "chat",
     "streaming",
@@ -63,6 +63,7 @@
     "generative-ui",
     "llm",
     "openai",
+    "vercel-ai-sdk",
     "zustand",
     "state-management",
     "sse",
@@ -77,9 +78,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/thesysdev/openui.git",
-    "directory": "packages/arrow-headless"
+    "directory": "packages/react-headless"
   },
   "bugs": {
     "url": "https://github.com/thesysdev/openui/issues"
+  },
+  "dependencies": {
+    "@ag-ui/core": "^0.0.53",
+    "@openuidev/observability": "workspace:^"
   }
 }

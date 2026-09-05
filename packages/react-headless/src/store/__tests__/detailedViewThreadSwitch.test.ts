@@ -1,5 +1,5 @@
+import { createDetailedViewStore } from "@openuidev/chat-core";
 import { describe, expect, it, vi } from "vitest";
-import { createDetailedViewStore } from "../createDetailedViewStore";
 import { makeStore } from "./__helpers/makeStore";
 
 const flushPromises = () => new Promise((r) => setTimeout(r, 0));

@@ -1,6 +1,6 @@
+import type { Thread, UserMessage } from "@openuidev/chat-core";
 import { describe, expect, it } from "vitest";
 import { createArrowChatStore } from "../createArrowChatStore.js";
-import type { Thread, UserMessage } from "../store/types.js";
 
 const firstMessage: UserMessage = {
   id: "m1",
@@ -16,12 +16,16 @@ function createConfig() {
   };
 
   return {
-    processMessage: async () => new Response(""),
-    fetchThreadList: async () => ({ threads: [thread] }),
-    createThread: async () => thread,
-    deleteThread: async () => {},
-    updateThread: async (updated: Thread) => updated,
-    loadThread: async () => [firstMessage],
+    storage: {
+      thread: {
+        listThreads: async () => ({ threads: [thread] }),
+        createThread: async () => thread,
+        deleteThread: async () => {},
+        updateThread: async (updated: Thread) => updated,
+        loadThread: async () => [firstMessage],
+      },
+    },
+    llm: { send: async () => new Response("") },
   };
 }
 
