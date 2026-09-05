@@ -1,7 +1,7 @@
+import type { ArtifactEntry } from "@openuidev/chat-core";
 import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useThreadContextStore } from "../store/ThreadContextContext";
-import type { ArtifactEntry } from "../store/threadContextTypes";
 
 export interface ArtifactListFilter {
   /** Only entries whose `type` is in this list. Omit for all entries. */

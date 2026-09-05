@@ -1,6 +1,6 @@
+import type { AssistantMessage, Message, ToolMessage } from "@openuidev/chat-core";
+import { pairToolActivity, type ToolActivity } from "@openuidev/chat-core";
 import { useMemo } from "react";
-import { pairToolActivity, type ToolActivity } from "../store/toolActivity";
-import type { AssistantMessage, Message, ToolMessage } from "../types";
 import { useThread } from "./useThread";
 
 /**

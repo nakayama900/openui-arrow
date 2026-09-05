@@ -1,5 +1,5 @@
+import type { ArtifactCategory } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
-import type { ArtifactCategory } from "../adapters/types";
 
 /** @internal Provided by `ChatProvider` from the `artifactCategories` prop. */
 export const ArtifactCategoriesContext = createContext<ArtifactCategory[]>([]);

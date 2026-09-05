@@ -1,6 +1,5 @@
 import type { ArtifactCategory, ChatLLM, ChatStorage } from "../adapters/types";
 import type { Message, UserMessage } from "../types/message";
-import type { ArtifactRendererConfig } from "./artifactRendererTypes";
 
 export type { Message, UserMessage } from "../types/message";
 export type CreateMessage = Omit<UserMessage, "id">;
@@ -73,7 +72,7 @@ export type ChatStore = ThreadListState &
 
 // ── Provider props ──
 
-export interface ChatProviderProps {
+export interface ChatCoreProviderProps {
   /** Optional — defaults to an internal in-memory storage (no persistence). */
   storage?: ChatStorage;
   /** Required — drives message sending and stream parsing. */
@@ -85,12 +84,14 @@ export interface ChatProviderProps {
    * duplicate `toolName`/`type`.
    */
 
-  artifactRenderers?: ReadonlyArray<ArtifactRendererConfig<any>>;
+  // ponytail: renderer configs are framework-coupled; react-headless narrows this via ChatProviderProps
+  artifactRenderers?: ReadonlyArray<unknown>;
   /**
    * Global artifact categories. Drive the sidebar Artifacts split, the
    * artifact browser's pre-applied filters, and workspace section grouping.
    */
   artifactCategories?: ArtifactCategory[];
   artifactAutoOpen?: boolean;
-  children: React.ReactNode;
+  // ponytail: react-headless extends this with children: ReactNode
+  children?: unknown;
 }

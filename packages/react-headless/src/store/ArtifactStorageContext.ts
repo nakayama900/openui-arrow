@@ -1,5 +1,5 @@
+import type { ArtifactStorage } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
-import type { ArtifactStorage } from "../adapters/types";
 
 /** @internal Provided by `ChatProvider` from `storage.artifact`. */
 export const ArtifactStorageContext = createContext<ArtifactStorage | null>(null);

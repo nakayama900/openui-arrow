@@ -1,6 +1,6 @@
-import { createChatStore } from "@openuidev/chat-core";
 import { vi } from "vitest";
 import type { ChatLLM, ChatStorage, ThreadStorage } from "../../../adapters/types";
+import { createChatStore } from "../../createChatStore";
 
 export interface MakeStoreOverrides extends Partial<ThreadStorage> {
   send?: ChatLLM["send"];

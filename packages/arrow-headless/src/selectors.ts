@@ -4,13 +4,14 @@ import type {
   ThreadListActions,
   ThreadListState,
   ThreadState,
-} from "./store/types.js";
+} from "@openuidev/chat-core";
 
 export type ThreadSlice = ThreadState & ThreadActions;
 export type ThreadListSlice = ThreadListState & ThreadListActions;
 
 export const selectThread = (state: ChatStore): ThreadSlice => ({
   messages: state.messages,
+  executingToolCallIds: state.executingToolCallIds,
   isRunning: state.isRunning,
   isLoadingMessages: state.isLoadingMessages,
   threadError: state.threadError,
