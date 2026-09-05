@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useId, useInsertionEffect, useMemo } from "react";
 import { defaultDarkTheme, defaultLightTheme } from "./defaultTheme";
 import { Theme, ThemeMode } from "./types";
-import { themeToCssVars } from "./utils";
+import { KNOWN_THEME_KEYS, themeToCssVars } from "./utils";
 
 /**
  * Props for the {@link ThemeProvider} component.
  */
 export type ThemeProps = {
-  /** Active color scheme. @default "light" */
+  /** Active color scheme. Defaults to the parent ThemeProvider mode when nested, otherwise `"light"`. */
   mode?: ThemeMode;
   /** Application content rendered inside the theme context. */
   children?: React.ReactNode;
@@ -109,8 +109,6 @@ function cssSafeId(id: string): string {
   return id.replace(/[^a-zA-Z0-9-_]/g, "");
 }
 
-const _knownThemeKeys = new Set(Object.keys(defaultLightTheme));
-
 function validateThemeObject(themeObj: Theme, propName: string) {
   for (const [key, value] of Object.entries(themeObj)) {
     if (value !== undefined && typeof value !== "string" && !Array.isArray(value)) {
@@ -119,7 +117,7 @@ function validateThemeObject(themeObj: Theme, propName: string) {
         `[OpenUI] ${propName} key "${key}" has a non-string value (${typeof value}). All theme values should be strings.`,
       );
     }
-    if (!_knownThemeKeys.has(key)) {
+    if (!KNOWN_THEME_KEYS.has(key)) {
       warnOnce(
         `unknown-key:${propName}:${key}`,
         `[OpenUI] ${propName} contains unknown key "${key}". It will be ignored. Use createTheme() for typo detection with suggestions.`,
@@ -148,7 +146,7 @@ function validateThemeObject(themeObj: Theme, propName: string) {
  */
 
 export const ThemeProvider = ({
-  mode = "light",
+  mode: modeProp,
   children,
   lightTheme,
   darkTheme,
@@ -158,6 +156,7 @@ export const ThemeProvider = ({
   const id = cssSafeId(useId());
   const parent = useContext(InternalContext);
   const isNested = parent != null;
+  const mode = modeProp ?? parent?.mode ?? "light";
   const effectiveCssSelector = cssSelector || "body";
   const hasExplicitSelector = effectiveCssSelector !== "body";
 
@@ -236,6 +235,9 @@ export const ThemeProvider = ({
   const useAutoScope = isNested && !hasExplicitSelector;
   const styleSelector = useAutoScope ? `.${scopedClassName}` : effectiveCssSelector;
 
+  // Intentionally unlayered — must override component styles in both modes,
+  // including when consumers opt into layered-components.css (@layer openui),
+  // so runtime theming always wins. See README "Styling integration" before changing.
   useInsertionEffect(() => {
     const style = document.createElement("style");
     style.setAttribute("data-openui-theme", id);

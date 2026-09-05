@@ -1,66 +1,96 @@
 ---
 title: "@openuidev/react-ui"
-description: API reference for prebuilt chat layouts and default component library exports.
+description: API reference for the AgentInterface chat surface and default component library exports.
 ---
 
-Use this package for prebuilt chat UIs and default component library primitives.
+Use this package for the prebuilt `AgentInterface` chat surface and default component library primitives.
 
 ## Import
 
 ```ts
-import { Copilot, FullScreen, BottomTray } from "@openuidev/react-ui";
+import { AgentInterface } from "@openuidev/react-ui";
+import "@openuidev/react-ui/styles/index.css";
 ```
 
-## Layout components
+## Styling
 
-These layouts are documented in Chat UI guides and are all wrapped with `ChatProvider`.
+Import one complete React UI stylesheet exactly once, normally from your application's global entry point.
 
-### `Copilot`
+| Import                                         | Cascade behavior                                                                       |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `@openuidev/react-ui/styles/index.css`         | Default, unlayered styles. Override them with normal CSS specificity.                  |
+| `@openuidev/react-ui/layered/styles/index.css` | The same component styles wrapped in `@layer openui` for cascade-layered applications. |
 
-Sidebar chat layout.
+Choose one variant. Do not import `@openuidev/react-ui/components.css` or the default `styles/index.css` alongside the layered stylesheet. The unlayered rules would take precedence over every named layer and defeat the intended ordering. Importing `components.css` with the default full stylesheet also duplicates the component rules in current releases.
 
-```ts
-type CopilotProps = ChatLayoutProps;
+For a single component, use `@openuidev/react-ui/styles/<Component>.css` or its layered counterpart at `@openuidev/react-ui/layered/styles/<Component>.css` instead of a full stylesheet.
+
+### Tailwind v4
+
+Put the layer-order declaration and both imports at the top of the application's global stylesheet:
+
+```css
+@layer theme, base, openui, components, utilities;
+@import "tailwindcss";
+@import "@openuidev/react-ui/layered/styles/index.css";
 ```
 
-### `FullScreen`
+This places Tailwind Preflight in `base` below OpenUI components, while Tailwind component and utility classes remain above OpenUI and can override it. The first layer-order declaration establishes precedence, so it must appear before other imports or rules that register those layers.
 
-Full-page chat layout with thread sidebar.
+Keep the React UI import in one global entry point. Importing it again from a component or route can cause chunk-splitting bundlers to register `openui` before the intended global order, creating differences between development and production.
 
-```ts
-type FullScreenProps = ChatLayoutProps;
+Put application-wide resets in a lower layer, normally `base`:
+
+```css
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+}
 ```
 
-### `BottomTray`
+An unlayered reset wins over every named layer regardless of selector specificity. The recipe above is specific to Tailwind v4; for Tailwind v3, preserve the same effective precedence using its directives and emitted CSS instead of copying the v4 imports.
 
-Floating/collapsible tray layout.
+The layered variant requires browser support for [CSS cascade layers](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer). Use the default unlayered stylesheet when supporting browsers that do not implement `@layer`.
 
-```ts
-type BottomTrayProps = ChatLayoutProps & {
-  isOpen?: boolean;
-  onOpenChange?: (isOpen: boolean) => void;
-  defaultOpen?: boolean;
+## Chat interface
+
+`AgentInterface` is the package's chat surface — a full-page artifact chat with a thread-history sidebar, composer, and per-thread artifact workspace. It wraps `ChatProvider`, so it accepts the provider's `storage` + `llm` props alongside the shared UI props below.
+
+### `AgentInterface`
+
+```tsx
+import { AgentInterface, openAIAdapter, type ChatLLM } from "@openuidev/react-ui";
+import { openuiChatLibrary } from "@openuidev/react-ui/genui-lib";
+
+const llm: ChatLLM = {
+  send: ({ messages, signal }) =>
+    fetch("/api/chat", { method: "POST", body: JSON.stringify({ messages }), signal }),
+  streamProtocol: openAIAdapter(),
 };
+
+<AgentInterface llm={llm} componentLibrary={openuiChatLibrary} />;
 ```
 
-## Shared layout props (`ChatLayoutProps`)
+## Props (`AgentInterfaceProps`)
 
-All three layouts accept:
+`AgentInterface` extends `ChatProviderProps` (minus `children`) and adds the shared UI + theme props:
 
-- Chat provider props: `apiUrl`/`processMessage`, thread APIs, `streamProtocol`, `messageFormat`
+- Chat provider props (from `@openuidev/react-headless`):
+  - `storage?: ChatStorage` — thread (and optional artifact) persistence; defaults to in-memory
+  - `llm: ChatLLM` — required; `{ send({ threadId, messages, signal }), streamProtocol }`
+  - `artifactRenderers?: ArtifactRendererConfig[]`
+  - `artifactCategories?: ArtifactCategory[]`
 - Shared UI props:
+  - `componentLibrary?: Library` (from `@openuidev/react-lang`) — drives auto-GenUI rendering
+  - `components?: AgentInterfaceComponents` — `{ AssistantMessage?, UserMessage? }` overrides
   - `logoUrl?: string`
   - `agentName?: string`
-  - `messageLoading?: React.ComponentType`
+  - `labels?: AgentInterfaceLabels`
+  - `starters?: ConversationStarterProps[]`
+  - `starterVariant?: ConversationStarterVariant`
   - `scrollVariant?: ScrollVariant`
-  - `isArtifactActive?: boolean`
-  - `renderArtifact?: () => React.ReactNode`
-  - `welcomeMessage?: WelcomeMessageConfig`
-  - `conversationStarters?: ConversationStartersConfig`
-  - `assistantMessage?: AssistantMessageComponent`
-  - `userMessage?: UserMessageComponent`
-  - `composer?: ComposerComponent`
-  - `componentLibrary?: Library` (from `@openuidev/react-lang`)
+  - `scrollOnLoad?: boolean`
 - Theme wrapper props:
   - `theme?: ThemeProps`
   - `disableThemeProvider?: boolean`
@@ -117,7 +147,7 @@ import {
 } from "@openuidev/react-ui/genui-lib";
 ```
 
-**`openuiChatLibrary`** — Root is `Card` (vertical, no layout params). Includes chat-specific components: `FollowUpBlock`, `ListBlock`, `SectionBlock`. Does not include `Stack`. Use with `FullScreen` / `BottomTray` / `Copilot` chat interfaces.
+**`openuiChatLibrary`** — Root is `Card` (vertical, no layout params). Includes chat-specific components: `FollowUpBlock`, `ListBlock`, `SectionBlock`. Does not include `Stack`. Use with the `AgentInterface` chat surface.
 
 **`openuiLibrary`** — Root is `Stack`. Full layout suite with `Stack`, `Tabs`, `Carousel`, `Accordion`, `Modal`, etc. Use with the standalone `Renderer` or any non-chat layout (e.g., playground, embedded widgets, dashboards).
 
@@ -125,14 +155,56 @@ import {
 
 Generate the system prompt at build time with the CLI:
 
-```bash
+```bash tab="pnpm" tab-group="pkg"
+pnpx @openuidev/cli@latest generate ./src/library.ts --out src/generated/system-prompt.txt
+```
+
+```bash tab="bun" tab-group="pkg"
+bunx @openuidev/cli@latest generate ./src/library.ts --out src/generated/system-prompt.txt
+```
+
+```bash tab="yarn" tab-group="pkg"
+yarn dlx @openuidev/cli@latest generate ./src/library.ts --out src/generated/system-prompt.txt
+```
+
+```bash tab="npm" tab-group="pkg"
 npx @openuidev/cli@latest generate ./src/library.ts --out src/generated/system-prompt.txt
 ```
 
 ```tsx
 // Chat interface — system prompt stays on the server
-<FullScreen componentLibrary={openuiChatLibrary} ... />
+<AgentInterface componentLibrary={openuiChatLibrary} ... />
 
 // Standalone renderer
 <Renderer response={message} library={openuiLibrary} />
 ```
+
+## Skeleton components
+
+`Skeleton` and `TableSkeleton` are loading-state placeholders that render while data-driven genui components wait for `Query()` results. They use theme-aware CSS variables and a pulsing opacity animation.
+
+```tsx
+import { Skeleton, TableSkeleton } from "@openuidev/react-ui";
+```
+
+### `Skeleton`
+
+A generic skeleton bar. Use standalone or with `count` for stacked bars.
+
+| Prop           | Type     | Default     | Description                                          |
+| -------------- | -------- | ----------- | ---------------------------------------------------- |
+| `count`        | `number` | `1`         | Number of bars to stack                              |
+| `height`       | `string` | `"16px"`    | Bar height                                           |
+| `width`        | `string` | `"100%"`    | Bar width                                            |
+| `borderRadius` | `string` | `undefined` | Bar border radius (defaults to `--openui-radius-xs`) |
+
+### `TableSkeleton`
+
+A table-shaped placeholder used by the genui `Table` component while queries load.
+
+| Prop      | Type     | Default | Description                |
+| --------- | -------- | ------- | -------------------------- |
+| `rows`    | `number` | `5`     | Number of skeleton rows    |
+| `columns` | `number` | `4`     | Number of skeleton columns |
+
+Built-in genui components like `Table` automatically render `TableSkeleton` when `useIsQueryLoading()` is `true` and no data rows exist yet.

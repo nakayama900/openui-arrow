@@ -1,37 +1,55 @@
+import type { Metadata } from "next";
 import styles from "./page.module.css";
-import { CompatibilitySection } from "./sections/CompatibilitySection/CompatibilitySection";
-import { FeaturesSection } from "./sections/FeaturesSection/FeaturesSection";
+import { CloudBanner } from "./sections/CloudBanner/CloudBanner";
+import { CloudSection } from "./sections/CloudSection/CloudSection";
+import { FeatureGridSection } from "./sections/FeatureGridSection/FeatureGridSection";
 import { Footer } from "./sections/Footer/Footer";
-import { GradientDivider } from "./sections/GradientDivider/GradientDivider";
-import { HeroSection } from "./sections/HeroSection/HeroSection";
-import { PossibilitiesSection } from "./sections/PossibilitiesSection/PossibilitiesSection";
-import { ShiroMascot } from "./sections/ShiroMascot/ShiroMascot";
-import { StepsSection } from "./sections/StepsSection/StepsSection";
+import { HeroSection, Tagline } from "./sections/HeroSection/HeroSection";
+import { LogoStrip } from "./sections/LogoStrip/LogoStrip";
+import { ShiroPeek } from "./sections/ShiroPeek/ShiroPeek";
+import { StackDiagramSection } from "./sections/StackDiagramSection/StackDiagramSection";
 import { TweetWallSection } from "./sections/TweetWallSection/TweetWallSection";
+import { UseCasesSection } from "./sections/UseCasesSection/UseCasesSection";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default function HomePage() {
   return (
     <div className={styles.page}>
       <div className={styles.heroShell}>
         <HeroSection
+          align="left"
+          subtitle="Open Standard for Generative UI"
           showPlaygroundButton={false}
-          githubRepoUrl="https://github.com/thesysdev/openui"
-          githubButtonLabel="Star us on GitHub"
+          showTagline={false}
+          /* No GitHub CTA in the hero on either breakpoint: the header carries
+             the star count already. Dropping githubRepoUrl takes the desktop
+             button; the mobile banner defaults on, so it is turned off here. */
+          showGitHubBanner={false}
         />
-        <ShiroMascot />
-        <StepsSection />
+        <LogoStrip />
+        <Tagline />
       </div>
+      {/* The diagram opens the content band, so the page gradient starts here
+          rather than at the use cases below it. */}
       <div className={styles.contentSection}>
-        <GradientDivider direction="down" />
+        <StackDiagramSection />
         <div className={styles.contentShell}>
-          <PossibilitiesSection />
-          <CompatibilitySection />
-          <FeaturesSection />
+          <UseCasesSection />
+          <FeatureGridSection />
+          <div className={styles.cloudGroup}>
+            <ShiroPeek />
+            <CloudSection />
+          </div>
           <TweetWallSection />
         </div>
-        <GradientDivider direction="up" />
       </div>
       <Footer />
+      <CloudBanner />
     </div>
   );
 }

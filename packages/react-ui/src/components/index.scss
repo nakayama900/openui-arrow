@@ -6,7 +6,7 @@
 @use "../openui-defaults.scss";
 
 @forward "./Accordion/accordion.scss";
-@forward "./BottomTray/bottomTray.scss";
+@forward "./AgentInterface/agentInterface.scss";
 @forward "./Button/button.scss";
 @forward "./Buttons/buttons.scss";
 @forward "./Calendar/calendar.scss";
@@ -18,8 +18,8 @@
 @forward "./CheckBoxGroup/checkBoxGroup.scss";
 @forward "./CheckBoxItem/checkBoxItem.scss";
 @forward "./CodeBlock/codeBlock.scss";
-@forward "./CopilotShell/copilotShell.scss";
 @forward "./DatePicker/datePicker.scss";
+@forward "./DotMatrixLoader/dotMatrixLoader.scss";
 @forward "./FollowUpBlock/followUpBlock.scss";
 @forward "./FollowUpItem/followUpItem.scss";
 @forward "./FormControl/formControl.scss";
@@ -32,14 +32,14 @@
 @forward "./ListBlock/listBlock.scss";
 @forward "./ListItem/listItem.scss";
 @forward "./MarkDownRenderer/markDownRenderer.scss";
-@forward "./MessageLoading/messageLoading.scss";
+@forward "./Modal/Modal.scss";
 @forward "./OpenUIChat/openUIChat.scss";
 @forward "./RadioGroup/radioGroup.scss";
 @forward "./RadioItem/radioItem.scss";
 @forward "./SectionBlock/sectionBlock.scss";
 @forward "./Select/select.scss";
 @forward "./Separator/separator.scss";
-@forward "./Shell/shell.scss";
+@forward "./Skeleton/skeleton.scss";
 @forward "./Slider/slider.scss";
 @forward "./Steps/steps.scss";
 @forward "./SwitchGroup/switchGroup.scss";
@@ -56,4 +56,4 @@
 @forward "./ToolCall/toolCall.scss";
 @forward "./ToolResult/toolResult.scss";
 @forward "./_shared/shared.scss";
-@forward "./Modal/Modal.scss";
+@forward "./ModelSwitcher/modelSwitcher.scss";

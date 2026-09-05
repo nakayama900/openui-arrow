@@ -1,7 +1,7 @@
 {
   "name": "@openuidev/react-headless",
-  "version": "0.8.1",
-  "description": "Headless React primitives for AI chat — state management, streaming adapters for OpenAI and AG-UI, message format converters, and thread management for OpenUI generative UI apps",
+  "version": "0.9.13",
+  "description": "Headless React primitives for AI chat — state management, streaming adapters for OpenAI, Vercel AI SDK, and AG-UI, message format converters, and thread management for OpenUI generative UI apps",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.cjs",
@@ -39,13 +39,21 @@
     "ci": "pnpm run lint:check && pnpm run format:check"
   },
   "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0",
-    "zustand": "^4.5.5"
+    "ai": "^6.0.0 || ^7.0.0",
+    "react": "catalog:",
+    "zustand": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@types/react": ">=19.0.0",
+    "@types/react": "catalog:",
+    "ai": "^6.0.236",
+    "eve": "^0.11.7",
     "openai": "^6.22.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   },
   "keywords": [
     "openui",
@@ -57,6 +65,7 @@
     "generative-ui",
     "llm",
     "openai",
+    "vercel-ai-sdk",
     "zustand",
     "state-management",
     "sse",
@@ -77,6 +86,7 @@
     "url": "https://github.com/thesysdev/openui/issues"
   },
   "dependencies": {
-    "@ag-ui/core": "^0.0.45"
+    "@ag-ui/core": "^0.0.53",
+    "@openuidev/observability": "workspace:^"
   }
 }

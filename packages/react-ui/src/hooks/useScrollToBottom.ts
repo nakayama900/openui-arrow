@@ -10,6 +10,7 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
   userMessageSelector = ".openui-shell-thread-message-user",
   isRunning,
   isLoadingMessages,
+  scrollOnLoad = true,
 }: {
   ref: RefObject<T>;
   // scroll to bottom when this value changes
@@ -19,6 +20,9 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
   // if true, scroll to bottom logic will work
   isRunning?: boolean;
   isLoadingMessages?: boolean;
+  // when false, do NOT auto-scroll on initial load / conversation switch;
+  // auto-scroll then only happens while a response is generating (isRunning)
+  scrollOnLoad?: boolean;
 }) => {
   const previousLastMessage = useRef<L | null>(null);
   const lastUserMessage = useRef<HTMLElement | null>(null);
@@ -101,8 +105,7 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
       }
     } else {
       const lastUserMessageDiv = Array.from(element.querySelectorAll(userMessageSelector)).pop() as
-        | HTMLElement
-        | undefined;
+        HTMLElement | undefined;
       const lastUserMessageNextSibling = lastUserMessageDiv?.nextElementSibling;
       if (
         lastUserMessageDiv &&
@@ -110,13 +113,17 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
           !wasScrolledToBottomAfterLoading.current) &&
         previousLastMessage.current?.id !== lastMessage.id
       ) {
+        const scrollPaddingTop =
+          Number.parseFloat(window.getComputedStyle(element).scrollPaddingTop || "0") || 0;
+
         // scroll to last user message till there is only 1 more message
         const scrollPosition =
           lastUserMessageDiv.getBoundingClientRect().top -
           element.getBoundingClientRect().top +
-          element.scrollTop;
+          element.scrollTop -
+          scrollPaddingTop;
 
-        element.scrollTo({ top: scrollPosition, behavior: "smooth" });
+        element.scrollTo({ top: Math.max(scrollPosition, 0), behavior: "smooth" });
         lastUserMessage.current = lastUserMessageDiv;
       }
     }
@@ -127,7 +134,7 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
   useEffect(() => {
     if (
       (isRunning && !hasUserScrolledWhenIsRunning.current) || // scroll to bottom if user hasn't scrolled when isRunning is true
-      (!wasScrolledToBottomAfterLoading.current && !isLoadingMessages) // scroll to bottom once when messages are loaded
+      (scrollOnLoad && !wasScrolledToBottomAfterLoading.current && !isLoadingMessages) // scroll to bottom once when messages are loaded (skipped when scrollOnLoad is false)
     ) {
       scrollToBottom();
       wasScrolledToBottomAfterLoading.current = true;
@@ -136,5 +143,5 @@ export const useScrollToBottom = <T extends HTMLElement | null, L extends { id: 
     if (isLoadingMessages) {
       wasScrolledToBottomAfterLoading.current = false;
     }
-  }, [scrollToBottom, isRunning, isLoadingMessages]);
+  }, [scrollToBottom, isRunning, isLoadingMessages, scrollOnLoad]);
 };

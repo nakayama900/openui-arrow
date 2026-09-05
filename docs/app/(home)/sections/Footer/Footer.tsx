@@ -1,8 +1,8 @@
 "use client";
-import mascotDarkSvgPaths from "@/imports/svg-mascot-dark";
 import svgPaths from "@/imports/svg-urruvoh2be";
-import mascotSvgPaths from "@/imports/svg-xeurqn3j1r";
-import { useId } from "react";
+import { Monitor, Moon, Sun } from "@phosphor-icons/react";
+import { useTheme } from "next-themes";
+import { useId, useSyncExternalStore } from "react";
 import styles from "./Footer.module.css";
 
 // ---------------------------------------------------------------------------
@@ -122,69 +122,51 @@ function ThesysLogo() {
   );
 }
 
-function HandcraftedMascot({ isDark }: { isDark: boolean }) {
-  if (isDark) {
-    return (
-      <svg
-        className={`${styles.handcraftedMascot} ${styles.handcraftedMascotDark}`.trim()}
-        fill="none"
-        preserveAspectRatio="xMidYMid meet"
-        viewBox="0 0 33 32"
-      >
-        <path d={mascotDarkSvgPaths.pBody} fill="white" />
-        <path d={mascotDarkSvgPaths.pOutline} fill="#464646" stroke="#464646" strokeWidth="0.3" />
-        <path d={mascotDarkSvgPaths.pMouth} fill="#464646" />
-        <path d={mascotDarkSvgPaths.pEarLeft} fill="#464646" stroke="#464646" strokeWidth="0.3" />
-        <path d={mascotDarkSvgPaths.pEarRight} fill="#464646" stroke="#464646" strokeWidth="0.3" />
-        <path d={mascotDarkSvgPaths.pEyeLeft} fill="#464646" />
-        <path d={mascotDarkSvgPaths.pEyeRight} fill="#464646" />
-        <path d={mascotDarkSvgPaths.pHornLeft} fill="#464646" stroke="#464646" strokeWidth="0.3" />
-        <path d={mascotDarkSvgPaths.pHornRight} fill="#464646" stroke="#464646" strokeWidth="0.3" />
-      </svg>
-    );
-  }
+// A segmented control rather than the header's single swap button: down here the
+// current choice is worth showing, and "system" has no opposite to swap to.
+// System sits in the middle, between the two it can resolve to.
+const THEMES = [
+  { id: "light", label: "Light", Icon: Sun },
+  { id: "system", label: "System", Icon: Monitor },
+  { id: "dark", label: "Dark", Icon: Moon },
+] as const;
+
+// Never fires: the value we want differs only between the server snapshot and
+// the client one, which is precisely the "have we hydrated yet" signal.
+const NEVER_CHANGES = () => () => {};
+
+function ThemeTabs() {
+  // `theme`, not `resolvedTheme`: the latter resolves "system" to light or dark,
+  // which would light up the wrong segment.
+  const { setTheme, theme } = useTheme();
+  // The server has no theme to render, so nothing is marked active until mount.
+  // Read as an external store rather than set from an effect, which would kick
+  // off a second render on every mount.
+  const mounted = useSyncExternalStore(
+    NEVER_CHANGES,
+    () => true,
+    () => false,
+  );
+  const active = mounted ? theme : undefined;
 
   return (
-    <svg
-      className={styles.handcraftedMascot}
-      fill="none"
-      preserveAspectRatio="xMidYMid meet"
-      viewBox="0 0 141.2 114.2"
-    >
-      <path
-        d={mascotSvgPaths.p395b3c00}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.6"
-      />
-      <path d={mascotSvgPaths.p3b251e80} fill="currentColor" />
-      <path
-        d={mascotSvgPaths.p2718bc80}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.6"
-      />
-      <path
-        d={mascotSvgPaths.p37ab5b0}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.6"
-      />
-      <path d={mascotSvgPaths.p2ac89300} fill="currentColor" />
-      <path d={mascotSvgPaths.p2b8b4380} fill="currentColor" />
-      <path
-        d={mascotSvgPaths.p15c14e00}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.6"
-      />
-      <path
-        d={mascotSvgPaths.p4076200}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.6"
-      />
-    </svg>
+    <div className={styles.themeTabs} role="group" aria-label="Colour theme">
+      {THEMES.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          className={`${styles.themeTab} ${active === id ? styles.themeTabActive : ""}`.trim()}
+          aria-pressed={active === id}
+          aria-label={`Use ${label.toLowerCase()} theme`}
+          title={`Use ${label.toLowerCase()} theme`}
+          onClick={() => setTheme(id)}
+        >
+          {/* Line weight rather than fill: at 16px the solid shapes read as
+              blobs, and the outline matches the social row below. */}
+          <Icon className={styles.themeTabIcon} weight="regular" aria-hidden="true" />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -193,35 +175,16 @@ function HandcraftedMascot({ isDark }: { isDark: boolean }) {
 // ---------------------------------------------------------------------------
 
 export function Footer() {
-  const isDark = false;
-
   return (
     <footer className={styles.footer}>
-      {/* Handcrafted */}
-      <div className={styles.handcraftedSection}>
-        <div className={styles.handcraftedContainer}>
-          <div className={styles.mascotWrap}>
-            <HandcraftedMascot isDark={isDark} />
-          </div>
-          <p className={styles.handcraftedCopy}>
-            Handcrafted with a lot of love
-            <span aria-hidden="true" className={styles.handcraftedCursor}>
-              _
-            </span>
-          </p>
-        </div>
-      </div>
-
       {/* Footer content */}
       <div className={styles.contentSection}>
         <div className={styles.contentContainer}>
-          {/* Desktop */}
-          <div className={styles.desktopLogoRow}>
+          {/* Mark on the left, theme control on the right, sitting directly on
+              the separator below. */}
+          <div className={styles.brandRow}>
             <ThesysLogo />
-          </div>
-          {/* Mobile */}
-          <div className={styles.mobileLogoRow}>
-            <ThesysLogo />
+            <ThemeTabs />
           </div>
 
           {/* Bottom bar */}

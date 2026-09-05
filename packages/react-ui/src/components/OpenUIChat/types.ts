@@ -87,11 +87,12 @@ export type ComposerProps = {
 export type ComposerComponent = React.ComponentType<ComposerProps>;
 
 /**
- * Shared UI props for all chat layout variants (FullScreen, Copilot, BottomTray).
+ * Shared UI props for the AgentInterface chat surface.
  */
 export interface SharedChatUIProps {
   logoUrl?: string;
   agentName?: string;
+  showAssistantLogo?: boolean;
   messageLoading?: React.ComponentType;
   scrollVariant?: ScrollVariant;
   welcomeMessage?: WelcomeMessageConfig;

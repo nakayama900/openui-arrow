@@ -12,26 +12,38 @@ import styles from "./docs-navbar.module.css";
 import { SiteHeaderFrame } from "./site-header";
 import { ThemeToggle } from "./theme-toggle";
 
-const tabs = [
+const tabs: { title: string; url: string; match?: string }[] = [
+  { title: "Overview", url: "/docs/overview" },
   { title: "OpenUI", url: "/docs/openui-lang" },
-  { title: "Chat", url: "/docs/chat" },
+  {
+    title: "Agent Interface",
+    url: "/docs/agent/getting-started/introduction",
+    match: "/docs/agent",
+  },
+  { title: "OpenUI Cloud", url: "/docs/openui-cloud" },
   { title: "API Reference", url: "/docs/api-reference" },
-] as const;
+];
 
 function activeTabUrl(pathname: string): string {
-  const sorted = [...tabs].sort((a, b) => b.url.length - a.url.length);
+  const sorted = [...tabs].sort((a, b) => (b.match ?? b.url).length - (a.match ?? a.url).length);
   return (
-    sorted.find((t) => pathname === t.url || pathname.startsWith(`${t.url}/`))?.url ?? tabs[0].url
+    sorted.find((t) => {
+      const prefix = t.match ?? t.url;
+      return pathname === prefix || pathname.startsWith(`${prefix}/`);
+    })?.url ?? tabs[0].url
   );
 }
 
 function SearchBar() {
   const { setOpenSearch } = useSearchContext();
-  const [isMac] = useState(
-    () => typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent),
-  );
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setIsMac(/mac/i.test(navigator.userAgent));
+    });
+
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
@@ -39,7 +51,10 @@ function SearchBar() {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("keydown", handler);
+    };
   }, [setOpenSearch]);
 
   return (
@@ -75,7 +90,20 @@ function SearchBar() {
 export function DocsNavbar({ showSidebarToggle = false }: { showSidebarToggle?: boolean }) {
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
-  const logoVariant = resolvedTheme === "dark" ? "dark" : "light";
+  // resolvedTheme is undefined during SSR and the first client render, so gate the
+  // theme-derived variant behind a mount flag (matching SiteMarketingHeader) to
+  // avoid a hydration mismatch on the brand text color.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setMounted(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const logoVariant = mounted && resolvedTheme === "dark" ? "dark" : "light";
 
   const tabValue = useMemo(() => activeTabUrl(pathname), [pathname]);
 

@@ -1,9 +1,12 @@
 # @openuidev/lang-core
 
-Framework-agnostic core for [OpenUI Lang](https://openui.com): parser, prompt generation, runtime evaluator, and type definitions.
+Framework-agnostic core for OpenUI Lang. This is the parser, prompt-generation, runtime-evaluation, and type layer used by the framework packages.
 
-[![npm](https://img.shields.io/npm/v/@openuidev/lang-core)](https://www.npmjs.com/package/@openuidev/lang-core)
+[![npm version](https://img.shields.io/npm/v/@openuidev/lang-core)](https://www.npmjs.com/package/@openuidev/lang-core)
+[![monthly downloads](https://img.shields.io/npm/dm/@openuidev/lang-core)](https://www.npmjs.com/package/@openuidev/lang-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/thesysdev/openui/blob/main/LICENSE)
+
+**Links:** [OpenUI Lang docs](https://openui.com/docs/openui-lang) | [GitHub repo](https://github.com/thesysdev/openui)
 
 ## Install
 
@@ -15,7 +18,7 @@ pnpm add @openuidev/lang-core
 
 ## What this package does
 
-`@openuidev/lang-core` is the framework-agnostic foundation that powers OpenUI Lang. It has no React or other framework dependencies. Use it when you need to:
+`@openuidev/lang-core` has no React, Vue, or Svelte dependency. Use it when you need to:
 
 - **Parse** OpenUI Lang text into a typed element tree (one-shot or streaming)
 - **Generate system prompts** from a component spec + tool definitions
@@ -38,8 +41,8 @@ header = CardHeader("Hello")
 content = TextContent("World")
 `);
 
-console.log(result.root); // ElementNode tree
-console.log(result.meta); // { incomplete, unresolved, statementCount, validationErrors }
+console.log(result.root);       // ElementNode tree
+console.log(result.meta);       // { incomplete, unresolved, statementCount, validationErrors }
 ```
 
 ### Streaming parser
@@ -51,23 +54,45 @@ const sp = createStreamingParser(libraryJsonSchema);
 
 // Feed chunks as they arrive from the LLM
 const result1 = sp.set("root = Stack([header])\n");
-const result2 = sp.set('root = Stack([header])\nheader = CardHeader("Hello")\n');
+const result2 = sp.set("root = Stack([header])\nheader = CardHeader(\"Hello\")\n");
 // result2.root now resolves the forward reference
 ```
 
 ### Generate a system prompt
 
 ```ts
-import { generatePrompt, type PromptSpec } from "@openuidev/lang-core";
-import componentSpec from "./generated/component-spec.json";
+import { generateSystemPrompt, type LibrarySpec } from "@openuidev/lang-core";
+import librarySpec from "./generated/library.spec.json";
 
-const prompt = generatePrompt({
-  ...componentSpec,
-  tools: myToolSpecs,
-  toolCalls: true,
-  bindings: true,
-  editMode: true,
-  preamble: "You build dashboards.",
+const prompt = generateSystemPrompt({
+  library: librarySpec as LibrarySpec,
+  promptOptions: {
+    tools: myToolSpecs,
+    toolCalls: true,
+    bindings: true,
+    editMode: true,
+    preamble: "You build dashboards.",
+  },
+});
+```
+
+### OpenUI Cloud
+
+Pass `cloud: true` to emit Cloud's managed config block instead of a local prompt. OpenUI Cloud
+assembles the real system prompt on the server.
+
+```ts
+import { generateSystemPrompt } from "@openuidev/lang-core";
+
+// Built-in Cloud chat library
+const instructions = generateSystemPrompt({ cloud: true });
+
+// Using your own library (the `.spec.json` from `openui generate`)
+const myLibraryPrompt = generateSystemPrompt({
+  cloud: true,
+  library: librarySpec,
+  promptOptions: { preamble: "You build dashboards for Acme." },
+  instructions: "Be terse.",
 });
 ```
 
@@ -86,32 +111,54 @@ const merged = mergeStatements(original, patch);
 
 ### Parser
 
-| Export                          | Description                            |
-| :------------------------------ | :------------------------------------- |
-| `createParser(schema)`          | One-shot parser for complete text      |
+| Export | Description |
+| :--- | :--- |
+| `createParser(schema)` | One-shot parser for complete text |
 | `createStreamingParser(schema)` | Incremental parser for streaming input |
-| `parse(input, schema)`          | Convenience one-shot parse             |
+| `parse(input, schema)` | Convenience one-shot parse |
 
 ### Prompt Generation
 
-| Export                 | Description                                  |
-| :--------------------- | :------------------------------------------- |
-| `generatePrompt(spec)` | Generate a system prompt from a `PromptSpec` |
+| Export | Description |
+| :--- | :--- |
+| `generatePrompt(spec)` | Generate a system prompt from a `PromptSpec` (now deprecated) |
+| `generateSystemPrompt(spec)` | Generate a system prompt from `{ library, promptOptions }`. Pass `{ cloud: true }` for OpenUI Cloud's managed config. |
 
 **`PromptSpec`** includes component signatures, tool definitions (`ToolSpec[]`), feature flags (`toolCalls`, `bindings`, `editMode`, `inlineMode`), examples, and custom rules.
 
 **`ToolSpec`** describes a tool for prompt generation (name, description, inputSchema, outputSchema). Shape inspired by MCP's tool schema.
 
+## Telemetry
+
+Lang Core sends pseudonymous installation telemetry during `postinstall`.
+Runtime usage telemetry is opt-in: set `OPENUI_RUNTIME_TELEMETRY_ENABLED=1` to allow
+limited telemetry from 10% of eligible server-side `generateSystemPrompt()` and
+`createParser().parse()` calls. Parser events include only the outcome, incomplete/root
+booleans, structural counts, fixed validation error-code counts, runtime metadata, and
+an optional locally hashed project identifier. They do not include OpenUI Lang source,
+schemas, component/prop/statement names, validation messages or paths, unresolved or
+orphaned names, exception content, credentials, application-user identifiers, or chat
+data. Browser and worker runtimes do not send runtime telemetry. Direct low-level
+`parse()` and streaming-parser calls are not included in the parser event.
+
+Capture servers can observe standard network metadata such as source IP even though
+it is not included in event properties.
+
+Set `OPENUI_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to disable telemetry
+(these also override `OPENUI_RUNTIME_TELEMETRY_ENABLED`). Set
+`OPENUI_TELEMETRY_DEBUG=1` to print the installation payload to stdout without
+sending it.
+
 ### Runtime
 
-| Export                                | Description                                       |
-| :------------------------------------ | :------------------------------------------------ |
-| `createQueryManager(toolProvider)`    | Manages Query/Mutation execution and caching      |
-| `createStore()`                       | Reactive store for `$variables` and form state    |
-| `evaluate(ast, context)`              | Evaluate an AST node to a concrete value          |
+| Export | Description |
+| :--- | :--- |
+| `createQueryManager(toolProvider)` | Manages Query/Mutation execution and caching |
+| `createStore()` | Reactive store for `$variables` and form state |
+| `evaluate(ast, context)` | Evaluate an AST node to a concrete value |
 | `evaluateElementProps(root, context)` | Recursively evaluate all props in an element tree |
-| `extractToolResult(result)`           | Extract data from an MCP `callTool` response      |
-| `mergeStatements(original, patch)`    | Merge incremental edits by statement name         |
+| `extractToolResult(result)` | Extract data from an MCP `callTool` response |
+| `mergeStatements(original, patch)` | Merge incremental edits by statement name |
 
 ### Types
 
@@ -131,7 +178,9 @@ import type {
 
 ## Documentation
 
-Full documentation, guides, and the language specification are available at **[openui.com](https://openui.com)**.
+- [OpenUI Lang guide](https://openui.com/docs/openui-lang)
+- [Language specification](https://openui.com/docs/openui-lang/specification-v05)
+- [Source on GitHub](https://github.com/thesysdev/openui/tree/main/packages/lang-core)
 
 ## License
 

@@ -1,10 +1,12 @@
 # @openuidev/react-headless
 
-Headless React primitives for [OpenUI](https://openui.com) — chat state management, streaming adapters, and message format converters. Build any chat UI while OpenUI handles the streaming, threading, and state.
+Headless React state and streaming primitives for OpenUI chat experiences. Bring your own UI; this package handles threads, messages, adapters, and message format conversion.
 
-[![npm](https://img.shields.io/npm/v/@openuidev/react-headless)](https://www.npmjs.com/package/@openuidev/react-headless)
-[![npm downloads](https://img.shields.io/npm/dm/@openuidev/react-headless)](https://www.npmjs.com/package/@openuidev/react-headless)
+[![npm version](https://img.shields.io/npm/v/@openuidev/react-headless)](https://www.npmjs.com/package/@openuidev/react-headless)
+[![monthly downloads](https://img.shields.io/npm/dm/@openuidev/react-headless)](https://www.npmjs.com/package/@openuidev/react-headless)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/thesysdev/openui/blob/main/LICENSE)
+
+**Links:** [Package docs](https://openui.com/docs/api-reference/react-headless) | [Chat docs](https://openui.com/docs/chat) | [GitHub repo](https://github.com/thesysdev/openui)
 
 ## Install
 
@@ -16,30 +18,41 @@ pnpm add @openuidev/react-headless
 
 **Peer dependencies:** `react >=19.0.0`, `react-dom >=19.0.0`, `zustand ^4.5.5`
 
+The Vercel AI SDK integration has one optional peer dependency:
+
+```bash
+npm install ai@^6
+# or, on Node.js 22+ with ESM
+npm install ai@^7
+```
+
+Both AI SDK 6 and 7 are supported. AI SDK 7 requires Node.js 22 or later and
+is ESM-only.
+
 ## Overview
 
-`@openuidev/react-headless` gives you everything needed to build a chat experience without imposing any UI. It provides:
+Use `@openuidev/react-headless` when you want OpenUI's chat behavior without OpenUI's visual components:
 
-- **`ChatProvider`** — A React context provider that manages threads, messages, and streaming state via a Zustand store.
-- **Selector hooks** — `useThread()` and `useThreadList()` to read and interact with chat state.
-- **Streaming adapters** — Parse SSE or SDK responses from OpenAI, AG-UI, or custom backends.
-- **Message formats** — Convert between your API's message format and the internal AG-UI format.
+- **`ChatProvider`** manages threads, messages, and streaming state through a Zustand store.
+- **Selector hooks** expose thread and thread-list state without coupling you to a layout.
+- **Streaming adapters** parse SSE or SDK responses from OpenAI, Vercel AI SDK, AG-UI, or custom backends.
+- **Message formats** convert between your API shape and OpenUI's internal AG-UI shape.
 
 ## Quick Start
 
 ### URL-based setup
 
-The simplest configuration — point to your API and the provider handles REST calls and streaming automatically:
+The simplest configuration points to your API and lets the provider handle the requests and streaming automatically:
 
 ```tsx
-import { ChatProvider } from "@openuidev/react-headless";
+import { agUIAdapter, ChatProvider, fetchLLM, restStorage } from "@openuidev/react-headless";
+
+const llm = fetchLLM({ url: "/api/chat", streamAdapter: agUIAdapter() });
+const storage = restStorage({ baseUrl: "/api/threads" });
 
 function App() {
   return (
-    <ChatProvider
-      apiUrl="/api/chat"
-      threadApiUrl="/api/threads"
-    >
+    <ChatProvider llm={llm} storage={storage}>
       <YourChatUI />
     </ChatProvider>
   );
@@ -48,31 +61,21 @@ function App() {
 
 ### Custom functions
 
-For full control, provide your own functions instead of URLs:
+For full control, implement the `ChatLLM` interface instead:
 
 ```tsx
-<ChatProvider
-  processMessage={async ({ threadId, messages, abortController }) => {
-    return fetch("/api/chat", {
+import { openAIAdapter, openAIMessageFormat, type ChatLLM } from "@openuidev/react-headless";
+
+const llm: ChatLLM = {
+  send: ({ threadId, messages, signal }) =>
+    fetch("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ threadId, messages }),
-      signal: abortController.signal,
-    });
-  }}
-  fetchThreadList={async () => {
-    const res = await fetch("/api/threads");
-    return res.json();
-  }}
-  createThread={async (firstMessage) => {
-    const res = await fetch("/api/threads", {
-      method: "POST",
-      body: JSON.stringify({ message: firstMessage }),
-    });
-    return res.json();
-  }}
->
-  <YourChatUI />
-</ChatProvider>
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ threadId, messages: openAIMessageFormat.toApi(messages) }),
+      signal,
+    }),
+  streamProtocol: openAIAdapter(),
+};
 ```
 
 ## Hooks
@@ -173,22 +176,37 @@ function MessageBubble() {
 
 ## Streaming Adapters
 
-Adapters transform HTTP responses into the internal event stream. Pass one to `ChatProvider` via `streamProtocol`:
+Adapters transform HTTP responses into the internal event stream. They are factories — call one and pass the result to `fetchLLM` via `streamAdapter`:
 
 ```tsx
-import { ChatProvider, openAIAdapter } from "@openuidev/react-headless";
+import { fetchLLM, openAIAdapter } from "@openuidev/react-headless";
 
-<ChatProvider apiUrl="/api/chat" streamProtocol={openAIAdapter}>
-  {children}
-</ChatProvider>
+const llm = fetchLLM({ url: "/api/chat", streamAdapter: openAIAdapter() });
 ```
 
 | Adapter | Description |
 | :--- | :--- |
-| `agUIAdapter` | Default — parses AG-UI SSE events (`data: {json}\n`) |
-| `openAIAdapter` | Parses OpenAI Chat Completions streaming (`ChatCompletionChunk`) |
-| `openAIResponsesAdapter` | Parses OpenAI Responses API streaming (`ResponseStreamEvent`) |
-| `openAIReadableStreamAdapter` | Parses OpenAI SDK's `Stream.toReadableStream()` NDJSON output |
+| `agUIAdapter()` | Parses AG-UI SSE events (`data: {json}\n`) |
+| `openAIAdapter()` | Parses OpenAI Chat Completions streaming (`ChatCompletionChunk`) |
+| `openAIResponsesAdapter()` | Parses OpenAI Responses API streaming (`ResponseStreamEvent`) |
+| `openAIReadableStreamAdapter()` | Parses OpenAI SDK's `Stream.toReadableStream()` NDJSON output |
+| `vercelAIAdapter()` | Parses Vercel AI SDK v6 and v7 UIMessage streams |
+
+For a Vercel AI SDK route, use its stream adapter and message format together:
+
+```tsx
+import { fetchLLM, vercelAIAdapter, vercelAIMessageFormat } from "@openuidev/react-headless";
+
+const llm = fetchLLM({
+  url: "/api/chat",
+  streamAdapter: vercelAIAdapter(),
+  messageFormat: vercelAIMessageFormat,
+});
+```
+
+This integration supports app-executed tools. Provider-executed tools
+(`providerExecuted: true`, such as provider-hosted built-ins) throw an error because
+the AG-UI message model cannot preserve their assistant-contained result semantics.
 
 ### Custom adapter
 
@@ -206,21 +224,24 @@ const myAdapter: StreamProtocolAdapter = {
 
 ## Message Formats
 
-Message formats convert between your API's message shape and the internal AG-UI format. Pass one to `ChatProvider` via `messageFormat`:
+Message formats convert between your API's message shape and the internal AG-UI format. Pass one to `fetchLLM` via the `messageFormat` option:
 
 ```tsx
-import { ChatProvider, openAIMessageFormat } from "@openuidev/react-headless";
+import { fetchLLM, openAIAdapter, openAIMessageFormat } from "@openuidev/react-headless";
 
-<ChatProvider apiUrl="/api/chat" messageFormat={openAIMessageFormat}>
-  {children}
-</ChatProvider>
+const llm = fetchLLM({
+  url: "/api/chat",
+  streamAdapter: openAIAdapter(),
+  messageFormat: openAIMessageFormat,
+});
 ```
 
 | Format | Description |
 | :--- | :--- |
-| `identityMessageFormat` | Default — no conversion (messages are already AG-UI format) |
+| `identityMessageFormat` | Default format when messages are already AG-UI shaped |
 | `openAIMessageFormat` | Converts to/from OpenAI `ChatCompletionMessageParam[]` |
 | `openAIConversationMessageFormat` | Converts to/from OpenAI Responses API `ResponseInputItem[]` |
+| `vercelAIMessageFormat` | Converts to/from Vercel AI SDK v6 and v7 `UIMessage[]` |
 
 ### Custom format
 
@@ -263,7 +284,9 @@ import type {
 
 ## Documentation
 
-Full documentation and guides are available at **[openui.com](https://openui.com)**.
+- [React Headless API reference](https://openui.com/docs/api-reference/react-headless)
+- [Chat guides](https://openui.com/docs/chat)
+- [Source on GitHub](https://github.com/thesysdev/openui/tree/main/packages/react-headless)
 
 ## License
 

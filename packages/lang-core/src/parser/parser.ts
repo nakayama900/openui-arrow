@@ -1,20 +1,27 @@
+import {
+  captureParserParseException,
+  captureParserParseResult,
+  prepareParserParseTelemetry,
+} from "../telemetry/runtime";
 import type { ASTNode, Statement } from "./ast";
 import { isASTNode, walkAST } from "./ast";
 import { isBuiltin, RESERVED_CALLS } from "./builtins";
 import { parseExpression } from "./expressions";
 import { tokenize } from "./lexer";
-import { materializeValue, type MaterializeCtx } from "./materialize";
+import { materializeValue } from "./materialize";
 import { autoClose, split, type RawStmt } from "./statements";
 import { T } from "./tokens";
 import {
   isElementNode,
   type LibraryJSONSchema,
+  type MaterializeCtx,
   type MutationStatementInfo,
   type ParamMap,
   type ParseResult,
   type QueryStatementInfo,
   type ValidationError,
 } from "./types";
+import { getSchemaDefaultValue } from "./validation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Result building
@@ -246,6 +253,22 @@ function buildResult(
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
+function skipString(input: string, start: number): number {
+  if (input[start] !== '"') return start;
+  let i = start + 1;
+  while (i < input.length) {
+    const c = input[i];
+    if (c === "\\") {
+      i += 2; // skip escape character and the escaped character
+    } else if (c === '"') {
+      return i + 1; // return index after the closing quote
+    } else {
+      i++;
+    }
+  }
+  return i; // return length if string was unclosed
+}
+
 /** Extract code from markdown fences, or return as-is if no fences found.
  *  String-context-aware: skips ``` inside double-quoted strings. */
 export function stripFences(input: string): string {
@@ -253,8 +276,29 @@ export function stripFences(input: string): string {
   let i = 0;
 
   while (i < input.length) {
-    // Look for opening ```
-    const fenceStart = input.indexOf("```", i);
+    // Scan for opening ``` while tracking string context
+    let fenceStart = -1;
+    while (i < input.length) {
+      const nextI = skipString(input, i);
+      if (nextI > i) {
+        i = nextI;
+        continue;
+      }
+
+      const c = input[i];
+      if (
+        c === "`" &&
+        i + 1 < input.length &&
+        input[i + 1] === "`" &&
+        i + 2 < input.length &&
+        input[i + 2] === "`"
+      ) {
+        fenceStart = i;
+        break;
+      }
+      i++;
+    }
+
     if (fenceStart === -1) break;
 
     // Skip language tag until newline
@@ -269,26 +313,15 @@ export function stripFences(input: string): string {
     j++; // skip the newline
 
     // Scan for closing ``` while tracking string context
-    let inStr = false;
     let closePos = -1;
     let k = j;
     while (k < input.length) {
+      const nextK = skipString(input, k);
+      if (nextK > k) {
+        k = nextK;
+        continue;
+      }
       const c = input[k];
-      if (inStr) {
-        if (c === "\\" && k + 1 < input.length) {
-          k += 2; // skip escaped character
-          continue;
-        }
-        if (c === '"') inStr = false;
-        k++;
-        continue;
-      }
-      // Not in string
-      if (c === '"') {
-        inStr = true;
-        k++;
-        continue;
-      }
       if (
         c === "`" &&
         k + 1 < input.length &&
@@ -333,10 +366,10 @@ export function stripFences(input: string): string {
 
 /** Strip // and # line comments outside of strings (handles both " and ' delimiters). */
 function stripComments(input: string): string {
+  let inStr: false | '"' | "'" = false;
   return input
     .split("\n")
     .map((line) => {
-      let inStr: false | '"' | "'" = false;
       for (let i = 0; i < line.length; i++) {
         const c = line[i];
         if (inStr) {
@@ -410,24 +443,45 @@ export interface StreamParser {
 }
 
 export function createStreamParser(cat: ParamMap, rootName?: string): StreamParser {
-  let buf = "";
-  let completedEnd = 0;
+  let buf = ""; // raw accumulated input (kept for set() diffing)
+  // Preprocessed view of `buf` (fences + comments stripped, same as parse()'s
+  // preprocess). The completed-statement scan runs over THIS, never the raw
+  // buffer — so leading markdown prose / ```fences``` (e.g. an apostrophe in
+  // "You're …" before the program) can't corrupt statement-boundary detection.
+  let cleaned = "";
+  let completedEnd = 0; // watermark: how far into `cleaned` is already completed
   const completedStmtMap = new Map<string, Statement>();
 
   let completedCount = 0;
   let firstId = "";
 
   function addStmt(text: string) {
-    // Strip comments and skip fence markers
-    const cleaned = stripComments(text).trim();
-    if (!cleaned || /^```/.test(cleaned)) return;
-    for (const s of split(tokenize(cleaned))) {
+    // `text` is sliced from `cleaned`, so it's already fence/comment-free.
+    const t = text.trim();
+    if (!t) return;
+    for (const s of split(tokenize(t))) {
       const expr = parseExpression(s.tokens);
       const stmt = classifyStatement(s, expr);
       completedStmtMap.set(s.id, stmt);
       completedCount++;
       if (!firstId) firstId = s.id;
     }
+  }
+
+  // Recompute `cleaned` from `buf`. If the already-completed prefix is no longer
+  // a prefix of the new cleaned text (e.g. an opening ```fence``` just appeared
+  // and shifted the stripped output), the watermark + cache are stale, so reset
+  // and re-scan. When the prefix is stable (the common streaming case) the cache
+  // is kept, so a partial trailing statement never blanks already-completed ones.
+  function refreshCleaned() {
+    const next = preprocess(buf);
+    if (!next.startsWith(cleaned.slice(0, completedEnd))) {
+      completedEnd = 0;
+      completedStmtMap.clear();
+      completedCount = 0;
+      firstId = "";
+    }
+    cleaned = next;
   }
 
   function scanNewCompleted(): number {
@@ -437,8 +491,8 @@ export function createStreamParser(cat: ParamMap, rootName?: string): StreamPars
       esc = false;
     let stmtStart = completedEnd;
 
-    for (let i = completedEnd; i < buf.length; i++) {
-      const c = buf[i];
+    for (let i = completedEnd; i < cleaned.length; i++) {
+      const c = cleaned[i];
       if (esc) {
         esc = false;
         continue;
@@ -466,15 +520,21 @@ export function createStreamParser(cat: ParamMap, rootName?: string): StreamPars
         // meaningful character is `?` or `:` — ternary continuation.
         let peek = i + 1;
         while (
-          peek < buf.length &&
-          (buf[peek] === " " || buf[peek] === "\t" || buf[peek] === "\r" || buf[peek] === "\n")
+          peek < cleaned.length &&
+          (cleaned[peek] === " " ||
+            cleaned[peek] === "\t" ||
+            cleaned[peek] === "\r" ||
+            cleaned[peek] === "\n")
         )
           peek++;
-        if (peek < buf.length && (buf[peek] === "?" || (buf[peek] === ":" && ternaryDepth > 0))) {
+        if (
+          peek < cleaned.length &&
+          (cleaned[peek] === "?" || (cleaned[peek] === ":" && ternaryDepth > 0))
+        ) {
           continue; // ternary continuation — don't split
         }
         // Depth-0 newline = end of a statement
-        const t = buf.slice(stmtStart, i).trim();
+        const t = cleaned.slice(stmtStart, i).trim();
         if (t) addStmt(t);
         stmtStart = i + 1; // next statement begins after this newline
         completedEnd = i + 1; // advance the "already processed" watermark
@@ -485,8 +545,9 @@ export function createStreamParser(cat: ParamMap, rootName?: string): StreamPars
   }
 
   function currentResult(): ParseResult {
+    refreshCleaned();
     const pendingStart = scanNewCompleted();
-    const pendingText = buf.slice(pendingStart).trim();
+    const pendingText = cleaned.slice(pendingStart).trim();
 
     // No pending text — all statements are complete
     if (!pendingText) {
@@ -502,22 +563,9 @@ export function createStreamParser(cat: ParamMap, rootName?: string): StreamPars
       );
     }
 
-    // Apply same cleanup as parse() — strip fences, comments, whitespace
-    const cleaned = stripComments(stripFences(pendingText)).trim();
-    if (!cleaned) {
-      if (completedCount === 0) return emptyResult();
-      return buildResult(
-        completedStmtMap,
-        [...completedStmtMap.values()],
-        firstId,
-        false,
-        completedCount,
-        cat,
-        rootName,
-      );
-    }
-    // Autoclose the incomplete last statement so it's syntactically valid
-    const { text: closed, wasIncomplete } = autoClose(cleaned);
+    // `cleaned` is already preprocessed (fences + comments stripped); just
+    // autoclose the incomplete trailing statement so it's syntactically valid.
+    const { text: closed, wasIncomplete } = autoClose(pendingText);
     const stmts = split(tokenize(closed));
 
     if (!stmts.length) {
@@ -561,6 +609,7 @@ export function createStreamParser(cat: ParamMap, rootName?: string): StreamPars
 
   function reset() {
     buf = "";
+    cleaned = "";
     completedEnd = 0;
     completedStmtMap.clear();
     completedCount = 0;
@@ -588,13 +637,6 @@ export interface Parser {
   parse(input: string): ParseResult;
 }
 
-function getSchemaDefaultValue(property: unknown): unknown {
-  if (!property || typeof property !== "object" || Array.isArray(property)) {
-    return undefined;
-  }
-  return (property as { default?: unknown }).default;
-}
-
 export function compileSchema(schema: LibraryJSONSchema): ParamMap {
   const map: ParamMap = new Map();
   const defs = schema.$defs ?? {};
@@ -606,6 +648,7 @@ export function compileSchema(schema: LibraryJSONSchema): ParamMap {
       name: key,
       required: required.includes(key),
       defaultValue: getSchemaDefaultValue(properties[key]),
+      schema: properties[key],
     }));
     map.set(name, { params });
   }
@@ -627,7 +670,15 @@ export function createParser(schema: LibraryJSONSchema, rootName?: string): Pars
   const paramMap = compileSchema(schema);
   return {
     parse(input: string): ParseResult {
-      return parse(input, paramMap, rootName);
+      const telemetry = prepareParserParseTelemetry();
+      try {
+        const result = parse(input, paramMap, rootName);
+        captureParserParseResult(telemetry, result);
+        return result;
+      } catch (error) {
+        captureParserParseException(telemetry);
+        throw error;
+      }
     },
   };
 }
