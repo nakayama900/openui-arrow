@@ -81,9 +81,11 @@ export const Card = defineComponent({
   description: "A bordered content container with an optional title.",
   component: ({ props, renderNode }) =>
     html`<section style=${cardStyle}>
-      ${props.title
-        ? html`<h2 style="font-size:1rem;font-weight:600;margin:0 0 0.75rem;">${props.title}</h2>`
-        : null}
+      ${
+        props.title
+          ? html`<h2 style="font-size:1rem;font-weight:600;margin:0 0 0.75rem;">${props.title}</h2>`
+          : null
+      }
       <div style="display:flex;flex-direction:column;gap:0.75rem;">
         ${renderChildren(renderNode(props.children ?? []))}
       </div>

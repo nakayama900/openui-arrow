@@ -23,8 +23,10 @@ export type {
 
 export type RenderNodeResult = ArrowRenderable | ArrowTemplate | RenderNodeResult[];
 
-export interface ComponentRenderProps<P = Record<string, unknown>>
-  extends CoreRenderProps<P, RenderNodeResult> {}
+export interface ComponentRenderProps<P = Record<string, unknown>> extends CoreRenderProps<
+  P,
+  RenderNodeResult
+> {}
 
 export type ComponentRenderer<P = Record<string, unknown>> = (
   props: ComponentRenderProps<P>,
