@@ -96,6 +96,9 @@ Try it yourself in the [Playground](https://www.openui.com/playground): generate
 | [`@openuidev/lang-core`](./packages/lang-core)                                                             | Framework-agnostic parsing and prompt generation | Core parser, prompt-generation, runtime-evaluation, and type layer with no React, Vue, or Svelte dependency  |
 | [`@openuidev/langchain`](./packages/langchain)                                                             | LangChain and LangGraph agents                   | Agent transformer and server helpers that stream OpenUI through AG-UI                                        |
 | [`@openuidev/react-lang`](./packages/react-lang)                                                           | React rendering runtimes                         | Define component libraries, generate prompts, and render streamed OpenUI Lang in React                       |
+| [`@openuidev/arrow-lang`](./packages/arrow-lang)         | ArrowJS runtime — component definitions, parser, renderer, prompt generation |
+| [`@openuidev/arrow-headless`](./packages/arrow-headless) | Headless ArrowJS chat state, streaming adapters, message format converters   |
+| [`@openuidev/arrow-ui`](./packages/arrow-ui)             | ArrowJS component library and chat helpers                                   |
 | [`@openuidev/react-headless`](./packages/react-headless)                                                   | Bring-your-own React chat UI                     | Headless chat state, streaming adapters, and message format converters                                       |
 | [`@openuidev/react-ui`](./packages/react-ui)                                                               | Fastest path to a full React chat experience     | Prebuilt chat layouts, standalone UI primitives, and two built-in component libraries                        |
 | [`@openuidev/react-email`](./packages/react-email)                                                         | Email generation and HTML export                 | React Email component definitions plus prompt options for model-generated emails                             |
@@ -158,6 +161,9 @@ Detailed documentation is available at [openui.com](https://openui.com).
 openui/
 ├── packages/
 │   ├── react-lang/       # Core runtime (parser, renderer, prompt generation)
+│   ├── arrow-lang/       # ArrowJS runtime (parser, renderer, prompt generation)
+│   ├── arrow-headless/   # Headless ArrowJS chat state & streaming adapters
+│   ├── arrow-ui/         # ArrowJS component library & chat helpers
 │   ├── react-headless/   # Headless chat state & streaming adapters
 │   ├── react-ui/         # Prebuilt chat layouts & component libraries
 │   ├── react-email/      # React Email component library for generated emails
