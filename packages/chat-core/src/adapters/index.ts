@@ -16,4 +16,4 @@ export { getResponseErrorMessage } from "./httpError";
 export { restStorage } from "./restStorage";
 export type { RestStorageOptions } from "./restStorage";
 
-// _defaultStorage is intentionally NOT exported — it's internal to ChatProvider.
+export { createDefaultInMemoryStorage } from "./_defaultStorage";

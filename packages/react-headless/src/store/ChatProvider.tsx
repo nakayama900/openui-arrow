@@ -1,21 +1,33 @@
+import type { ChatCoreProviderProps } from "@openuidev/chat-core";
+import {
+  createChatStore,
+  createDefaultInMemoryStorage,
+  createDetailedViewStore,
+  createThreadContextStore,
+} from "@openuidev/chat-core";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState, type FC } from "react";
-import { createDefaultInMemoryStorage } from "../adapters/_defaultStorage";
 import { useArtifactAutoOpenWatcher } from "./artifactAutoOpenWatcher";
 import { ArtifactCategoriesContext } from "./ArtifactCategoriesContext";
 import {
   ArtifactRenderersContext,
   buildArtifactRendererRegistry,
 } from "./ArtifactRenderersContext";
+import type { ArtifactRendererConfig } from "./artifactRendererTypes";
 import { ArtifactStorageContext } from "./ArtifactStorageContext";
 import { ChatContext } from "./ChatContext";
-import { createChatStore } from "./createChatStore";
-import { createDetailedViewStore } from "./createDetailedViewStore";
-import { createThreadContextStore } from "./createThreadContextStore";
 import { DetailedViewContext } from "./DetailedViewContext";
 import { ThreadContextContext } from "./ThreadContextContext";
-import type { ChatProviderProps } from "./types";
 
 const EMPTY_CATEGORIES: never[] = [];
+
+export interface ChatProviderProps extends Omit<
+  ChatCoreProviderProps,
+  "children" | "artifactRenderers"
+> {
+  artifactRenderers?: ReadonlyArray<ArtifactRendererConfig<any>>;
+  children: ReactNode;
+}
 
 export const ChatProvider: FC<ChatProviderProps> = ({
   children,

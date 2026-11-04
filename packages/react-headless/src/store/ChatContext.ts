@@ -1,6 +1,6 @@
+import type { ChatStore } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
-import type { ChatStore } from "./types";
 
 export const ChatContext = createContext<StoreApi<ChatStore> | null>(null);
 

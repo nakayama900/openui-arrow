@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { ArtifactCategory } from "../adapters/types";
+import type { ArtifactCategory } from "@openuidev/chat-core";
 import type { ArtifactRendererConfig } from "./artifactRendererTypes";
 
 /**

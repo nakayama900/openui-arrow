@@ -1,7 +1,7 @@
 {
   "name": "@openuidev/arrow-headless",
   "version": "0.1.0",
-  "description": "Headless ArrowJS primitives for AI chat — state management, streaming adapters, message format converters, and thread management for OpenUI generative UI apps",
+  "description": "Headless ArrowJS primitives for AI chat \u2014 state management, streaming adapters, message format converters, and thread management for OpenUI generative UI apps",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.cjs",
@@ -49,7 +49,8 @@
     "zustand": "^4.5.5"
   },
   "dependencies": {
-    "@ag-ui/core": "^0.0.45"
+    "@ag-ui/core": "^0.0.45",
+    "@openuidev/chat-core": "workspace:^"
   },
   "keywords": [
     "openui",

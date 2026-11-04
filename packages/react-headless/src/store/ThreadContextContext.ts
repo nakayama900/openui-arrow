@@ -1,6 +1,6 @@
+import type { ThreadContextStore } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
-import type { ThreadContextStore } from "./threadContextTypes";
 
 /** @internal React context holding the ThreadContext Zustand store. Provided by `ChatProvider`. */
 export const ThreadContextContext = createContext<StoreApi<ThreadContextStore> | null>(null);

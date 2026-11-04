@@ -1,6 +1,6 @@
+import type { DetailedViewStore } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
-import type { DetailedViewStore } from "./detailedViewTypes";
 
 /** @internal React context holding the detailed-view Zustand store. Provided by `ChatProvider`. */
 export const DetailedViewContext = createContext<StoreApi<DetailedViewStore> | null>(null);

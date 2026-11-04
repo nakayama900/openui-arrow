@@ -1,10 +1,10 @@
 import { reactive } from "@arrow-js/core";
+import type { ChatStore, CreateChatStoreConfig } from "@openuidev/chat-core";
+import { createChatStore } from "@openuidev/chat-core";
 import type { StoreApi } from "zustand";
 import { selectThread, selectThreadList } from "./selectors.js";
-import { createChatStore } from "./store/createChatStore.js";
-import type { ChatProviderProps, ChatStore } from "./store/types.js";
 
-type ArrowChatStoreConfig = ChatProviderProps;
+export type ArrowChatStoreConfig = CreateChatStoreConfig;
 
 export interface ArrowChatStore {
   /** The underlying Zustand vanilla store, for advanced integrations. */
@@ -24,7 +24,7 @@ export interface ArrowChatStore {
 }
 
 export function createArrowChatStore(config: ArrowChatStoreConfig): ArrowChatStore {
-  const store = createChatStore(config);
+  const store = createChatStore({ current: config });
   const state = reactive({ current: store.getState() }) as { current: ChatStore };
 
   const destroy = store.subscribe((next) => {

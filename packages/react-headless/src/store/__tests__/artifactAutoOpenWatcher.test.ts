@@ -1,6 +1,6 @@
+import { createDetailedViewStore } from "@openuidev/chat-core";
 import { describe, expect, it } from "vitest";
 import { evaluateRegisteredArtifacts } from "../artifactAutoOpenWatcher";
-import { createDetailedViewStore } from "../createDetailedViewStore";
 import type { ArtifactEntry } from "../threadContextTypes";
 
 const entry = (id: string, version = 1): ArtifactEntry => ({

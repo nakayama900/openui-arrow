@@ -1,7 +1,4 @@
-import type { ReactNode } from "react";
-import type { Thread } from "../store/types";
-import type { Message, UserMessage } from "../types/message";
-import type { StreamProtocolAdapter } from "../types/stream";
+import type { Message, StreamProtocolAdapter, Thread, UserMessage } from "@openuidev/chat-core";
 
 // ── Storage adapter interfaces ──
 
@@ -63,7 +60,8 @@ export interface ArtifactCategory {
    * element or a React Native element). When omitted, the nav falls back to the
    * `<ArtifactNav icon>` prop, then a generic default.
    */
-  icon?: ReactNode;
+  // ponytail: framework-coupled; react-headless re-narrow via module augmentation if needed
+  icon?: unknown;
 }
 
 export interface ChatStorage {
@@ -81,6 +79,4 @@ export interface ChatLLM {
 }
 
 // Re-exports kept here so adapter consumers can import everything in one shot.
-export type { Thread } from "../store/types";
-export type { Message, UserMessage } from "../types/message";
-export type { StreamProtocolAdapter } from "../types/stream";
+export type { Message, StreamProtocolAdapter, Thread, UserMessage } from "@openuidev/chat-core";

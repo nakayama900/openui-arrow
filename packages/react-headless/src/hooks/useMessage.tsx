@@ -1,6 +1,6 @@
+import { Message } from "@openuidev/chat-core";
 import { createContext, useContext } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Message } from "../types";
 
 /**
  * @category Contexts

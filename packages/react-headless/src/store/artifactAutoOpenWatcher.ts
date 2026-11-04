@@ -1,9 +1,11 @@
+import type {
+  ArtifactEntry,
+  createChatStore,
+  createDetailedViewStore,
+  createThreadContextStore,
+} from "@openuidev/chat-core";
+import { artifactViewId } from "@openuidev/chat-core";
 import { useEffect, useRef } from "react";
-import { artifactViewId } from "./artifactViewId";
-import type { createChatStore } from "./createChatStore";
-import type { createDetailedViewStore } from "./createDetailedViewStore";
-import type { createThreadContextStore } from "./createThreadContextStore";
-import type { ArtifactEntry } from "./threadContextTypes";
 
 /**
  * One pass over every artifact registered in the thread. Each artifact
